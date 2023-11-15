@@ -70,4 +70,27 @@ result|>
 Based on the plot, Richmond, VA has the smallest estimated proportion of unsolved homicides and Chicago, IL has the largest estimated proportion of unsolved homicides with a small CI. 
 
 # Problem 2
-
+```{r}
+# create a tidy dataframe
+p2 <- data.frame(name = list.files("./data/p2"), path= str_c("./data/p2/", list.files("./data/p2")))|>
+  mutate(data = map(path, read.csv))|>
+  unnest(c(data))|>
+  separate(name, c("arm", "id"), "_")|>
+  mutate(id = str_sub(id, start = 1, end = 2))|>
+  select(-path)|>
+  # switch from “wide” to “long” format
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week", 
+    values_to = "observation")
+# make spaghetti plot
+p2|>
+  ggplot(aes(x = week, y = observation, group = id, color = id)) +
+  geom_line() +
+  facet_grid(~arm)+
+  labs(title = "observations on each subject over time",
+       x = "week",
+       y = "observations") +
+  theme_minimal()
+```
+The control group exhibited fluctuations around a constant value, while the experimental group demonstrated an increasing trend as time progressed. 
