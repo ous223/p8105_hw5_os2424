@@ -67,6 +67,7 @@ result|>
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high))+
   labs(x = "proportion of unsolved homicides", y = "location", title = "Estimates and CIs for each city")
 ```
+
 Based on the plot, Richmond, VA has the smallest estimated proportion of unsolved homicides and Chicago, IL has the largest estimated proportion of unsolved homicides with a small CI. 
 
 # Problem 2
@@ -93,6 +94,7 @@ p2|>
        y = "observations") +
   theme_minimal()
 ```
+
 The control group exhibited fluctuations around a constant value, while the experimental group demonstrated an increasing trend as time progressed. 
 
 # Problem 3
@@ -100,6 +102,7 @@ The control group exhibited fluctuations around a constant value, while the expe
 n <- 30
 sigma <- 5
 test_result <- NULL
+# make function to generate 5000 data set
 t_test <- function(m){
   for(i in 1:5000){
     x <- rnorm(n, m, sigma)
@@ -132,6 +135,7 @@ data|>
        title = "reject proportion of different mu") +
   scale_x_continuous(breaks = seq(0, 6, 1))
 ```
+
 As true value of mu increase, the power (the reject proportion) increases, and approaches to 1. There is a positive association between effect size and power. 
 
 ```{r}
@@ -147,6 +151,7 @@ total|>
        y = "average estimate of mu", 
        title = "average estimated mu vs. true value of mu")
 ```
+
 The average estimated mu is very close to the true value of mu. They follow a linear relationship.
 
 ```{r}
@@ -163,4 +168,5 @@ rej|>
        y = "average estimate of mu", 
        title = "average estimated mu in reject only vs. true value of mu")
 ```
+
 When mu is 4, 5, 6, the sample averages of estimated mu for which the null is rejected are approximately equal to the true value of mu. This could due to the small power and effect size when mu is from 0 to 3. 
