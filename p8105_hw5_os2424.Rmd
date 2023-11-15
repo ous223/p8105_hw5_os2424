@@ -6,25 +6,68 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(purrr)
 ```
 
-## R Markdown
+# Problem 1
+```{r}
+# import data
+homi <- read.csv("./data/homicide-data.csv")
+```
+The raw data has `r nrow(homi)` observations, and `r ncol(homi)` variables, including the id representing the case, victim's name, race, age, and sex, the date and the location of the case, and the status of the case.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+# clean data 
+homi <- homi|>
+  # create city_state variable
+  mutate(city_state = str_c(city, state, sep = ", "))|>
+  mutate(reso = case_when(disposition == "Closed without arrest" ~ "unsolved",
+                          disposition == "Open/No arrest"        ~ "unsolved",
+                          disposition == "Closed by arrest"      ~ "solved"))|>
+  filter(city_state != "Tulsa, AL")|>
+  select(-city, - state, -disposition)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+# summarize within cities to obtain the total number of homicides and umber of unsolved homicides
+num_homi <- homi|>
+  group_by(city_state)|>
+  summarise(total_homi = n(), unsolved = sum(reso == "unsolved"))
+num_homi
 ```
+```{r}
+# use the prop.test function to estimate the proportion of homicides that are unsolved in Baltimore, md
+md <- filter(num_homi, city_state == "Baltimore, MD")
+md_test <- prop.test(pull(md, unsolved), pull(md, total_homi))
+# save the output as an R object
+save(md_test, file = "prop_test_result.RData")
+# apply the broom::tidy to this object
+md_test <- broom::tidy(md_test)
+# pull the estimated proportion and confidence intervals
+data.frame(city_state = "Baltimore, MD",
+           estimated_prop = pull(md_test, estimate),
+           confidence_interval = paste("(", pull(md_test, conf.low), ",",
+                                       pull(md_test, conf.high), ")"))
+```
+```{r}
+# run prop.test for each of the cities
+result <- num_homi|>
+  mutate(test = map2(unsolved, total_homi, \(x,y)prop.test(x,y)),
+         tidy = map(test, broom::tidy))|>
+  unnest(tidy)|>
+  #extract both the proportion of unsolved homicides and the confidence interval for each
+  select(city_state, estimate, conf.low, conf.high)
+result
+# create plot 
+result|>
+  # Organize cities according to the proportion of unsolved homicides
+  ggplot(aes(x = estimate, y = reorder(city_state,estimate))) + 
+  geom_point() + 
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high))+
+  labs(x = "proportion of unsolved homicides", y = "location", title = "Estimates and CIs for each city")
+```
+Based on the plot, Richmond, VA has the smallest estimated proportion of unsolved homicides and Chicago, IL has the largest estimated proportion of unsolved homicides with a small CI. 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Problem 2
+
