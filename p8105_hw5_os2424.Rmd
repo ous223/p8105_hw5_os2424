@@ -94,3 +94,73 @@ p2|>
   theme_minimal()
 ```
 The control group exhibited fluctuations around a constant value, while the experimental group demonstrated an increasing trend as time progressed. 
+
+# Problem 3
+```{r}
+n <- 30
+sigma <- 5
+test_result <- NULL
+t_test <- function(m){
+  for(i in 1:5000){
+    x <- rnorm(n, m, sigma)
+    test <- t.test(x, conf.level=0.95, mu = 0)
+    test <- broom::tidy(test)
+    test_result[[i]] <- tibble(set = i, m =m, mu_hat = pull(test, estimate), p_value = pull(test, p.value))
+  }
+  out <- bind_rows(test_result)
+  return(out)
+}
+t_test(0)
+```
+```{r}
+# repeat for m = {1,2,3,4,5,6}
+data <- NULL
+for(i in 0:6){
+  data <- bind_rows(data, t_test(i))
+}
+```
+```{r}
+# Make a plot showing the proportion of times the null was rejected 
+data|>
+  group_by(m)|>
+  summarise(rej_prop = sum(p_value<0.05)/5000)|>
+  ggplot(aes(x = m, y = rej_prop))+
+  geom_line()+
+  geom_point()+
+  labs(x = "true value of mu", 
+       y = "power", 
+       title = "reject proportion of different mu") +
+  scale_x_continuous(breaks = seq(0, 6, 1))
+```
+As true value of mu increase, the power (the reject proportion) increases, and approaches to 1. There is a positive association between effect size and power. 
+
+```{r}
+# Make a plot showing the average estimate of μ̂ 
+total <- data|>
+  group_by(m)|>
+  summarise(avg_est = mean(mu_hat))
+total|>
+  ggplot(aes(x = m, y = avg_est))+
+  geom_line()+
+  geom_point()+
+  labs(x = "true value of mu", 
+       y = "average estimate of mu", 
+       title = "average estimated mu vs. true value of mu")
+```
+The average estimated mu is very close to the true value of mu. They follow a linear relationship.
+
+```{r}
+# Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected
+rej <- data|>
+  group_by(m)|>
+  filter(p_value<0.05)|>
+  summarise(avg_est = mean(mu_hat))
+rej|>
+  ggplot()+
+  geom_line(aes(x = m, y = avg_est))+
+  geom_point(aes(x = m, y = avg_est))+
+  labs(x = "true value of mu", 
+       y = "average estimate of mu", 
+       title = "average estimated mu in reject only vs. true value of mu")
+```
+When mu is 4, 5, 6, the sample averages of estimated mu for which the null is rejected are approximately equal to the true value of mu. This could due to the small power and effect size when mu is from 0 to 3. 
